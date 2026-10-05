@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Synapse — capture, connect and understand your notes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body data-theme="dark">
+
+<div class="shell">
+
+  <!-- ============ Sidebar ============ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <span class="brand-mark">◈</span>
+      <span class="brand-name">Synapse</span>
+    </div>
+
+    <button class="btn-primary btn-block" id="new-note-btn">
+      <svg viewBox="0 0 24 24" width="16" height="16"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      New note
+    </button>
+    <button class="btn-ghost btn-block" id="quick-capture-btn">
+      <svg viewBox="0 0 24 24" width="16" height="16"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" fill="none"/></svg>
+      Quick capture
+    </button>
+
+    <nav class="nav-group">
+      <button class="nav-item active" data-view="notes"><span class="nav-ic">🗒️</span>All notes<span class="nav-count" id="count-all"></span></button>
+      <button class="nav-item" data-view="favorites"><span class="nav-ic">⭐</span>Favorites<span class="nav-count" id="count-fav"></span></button>
+      <button class="nav-item" data-view="graph"><span class="nav-ic">🕸️</span>Knowledge graph</button>
+      <button class="nav-item" data-view="dashboard"><span class="nav-ic">📊</span>Dashboard</button>
+      <button class="nav-item" data-view="archive"><span class="nav-ic">🗄️</span>Archive<span class="nav-count" id="count-arch"></span></button>
+      <button class="nav-item" data-view="trash"><span class="nav-ic">🗑️</span>Trash<span class="nav-count" id="count-trash"></span></button>
+    </nav>
+
+    <div class="sidebar-section">
+      <div class="sidebar-heading">
+        <span>Folders</span>
+        <button class="icon-btn tiny" id="add-folder-btn" title="New folder">+</button>
+      </div>
+      <ul class="folder-tree" id="folder-tree"></ul>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-heading"><span>Tags</span></div>
+      <div class="tag-cloud" id="tag-cloud"></div>
+    </div>
+
+    <button class="btn-ghost btn-block ask-btn" id="ask-notes-btn">
+      <span class="nav-ic">🧠</span> Ask my notes
+    </button>
+
+    <div class="sidebar-footer">
+      <button class="icon-btn" id="theme-toggle" title="Toggle dark / light">🌙</button>
+      <span id="ai-status" class="ai-status">Offline AI</span>
+    </div>
+  </aside>
+
+  <!-- ============ Main ============ -->
+  <main class="main">
+    <header class="topbar">
+      <button class="icon-btn mobile-only" id="sidebar-toggle">☰</button>
+
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" width="16" height="16"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2" fill="none"/><path d="m20 20-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <input id="search-input" type="text" placeholder="Search notes, tags, files… or ask anything" autocomplete="off" />
+      </div>
+
+      <div class="filter-row" id="filter-row">
+        <select id="filter-category">
+          <option value="">All categories</option>
+        </select>
+        <button class="chip" id="filter-favorite" data-active="false">⭐ Favorites</button>
+        <button class="chip" id="filter-files" data-active="false">📎 Has files</button>
+        <div class="view-toggle">
+          <button class="icon-btn tiny active" data-layout="grid" title="Grid view">▦</button>
+          <button class="icon-btn tiny" data-layout="list" title="List view">☰</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- ---- Notes view ---- -->
+    <section class="view" id="view-notes">
+      <h1 class="view-title" id="view-title">All notes</h1>
+      <div class="note-grid" id="note-grid"></div>
+      <p class="empty-state" id="notes-empty" hidden>Nothing here yet. Capture → organize → connect → understand.</p>
+    </section>
+
+    <!-- ---- Knowledge graph view ---- -->
+    <section class="view" id="view-graph" hidden>
+      <h1 class="view-title">Knowledge graph</h1>
+      <p class="view-subtitle">Notes connect automatically through shared tags and categories. Click a node to open it.</p>
+      <div class="graph-wrap">
+        <canvas id="graph-canvas"></canvas>
+        <p class="empty-state" id="graph-empty" hidden>Add tags to a few notes to see them connect here.</p>
+      </div>
+    </section>
+
+    <!-- ---- Dashboard view ---- -->
+    <section class="view" id="view-dashboard" hidden>
+      <h1 class="view-title">Your knowledge, at a glance</h1>
+      <div class="dash-grid" id="dash-grid"></div>
+    </section>
+  </main>
+</div>
+
+<!-- ============ Note editor overlay ============ -->
+<div class="overlay" id="editor-overlay" hidden>
+  <div class="overlay-panel editor-panel">
+    <header class="editor-topbar">
+      <input id="title-input" class="title-input" placeholder="Untitled note" maxlength="150" />
+      <div class="editor-topbar-actions">
+        <span id="save-indicator" class="save-indicator">Saved</span>
+        <button class="icon-btn" id="pin-btn" title="Pin">📌</button>
+        <button class="icon-btn" id="favorite-btn" title="Favorite">⭐</button>
+        <button class="icon-btn" id="archive-btn" title="Archive">🗄️</button>
+        <button class="icon-btn" id="history-btn" title="Version history">🕓</button>
+        <button class="icon-btn" id="export-btn" title="Export / share">📤</button>
+        <button class="icon-btn danger" id="delete-note-btn" title="Delete">🗑️</button>
+        <button class="icon-btn" id="close-editor-btn" title="Close">✕</button>
+      </div>
+    </header>
+
+    <div class="editor-meta-row">
+      <select id="folder-select"><option value="">No folder</option></select>
+      <input id="tags-input" placeholder="Add tags, comma separated…" />
+      <select id="category-select">
+        <option value="">Category</option>
+        <option>Work</option><option>Personal</option><option>Study</option>
+        <option>Finance</option><option>Health</option><option>Travel</option>
+        <option>Ideas</option><option>Shopping</option><option>Other</option>
+      </select>
+    </div>
+
+    <div class="toolbar" id="editor-toolbar">
+      <button data-cmd="bold" title="Bold"><b>B</b></button>
+      <button data-cmd="italic" title="Italic"><i>I</i></button>
+      <button data-cmd="underline" title="Underline"><u>U</u></button>
+      <span class="tb-sep"></span>
+      <button data-block="h2" title="Heading">H2</button>
+      <button data-block="h3" title="Subheading">H3</button>
+      <button data-cmd="insertUnorderedList" title="Bullet list">• List</button>
+      <button data-cmd="insertOrderedList" title="Numbered list">1. List</button>
+      <button data-block="checklist" title="Checklist">☑ Check</button>
+      <span class="tb-sep"></span>
+      <button data-block="quote" title="Quote">❝</button>
+      <button data-block="code" title="Code block">&lt;/&gt;</button>
+      <button data-block="table" title="Insert table">▦ Table</button>
+      <button data-block="image" title="Insert image">🖼️</button>
+      <button data-block="link" title="Insert link / reference">🔗</button>
+      <span class="tb-sep"></span>
+      <button data-action="voice" id="voice-btn" title="Voice to text">🎙️</button>
+    </div>
+
+    <div class="editor-body">
+      <div class="editor-scroll">
+        <div id="content-editor" class="content-editor" contenteditable="true" data-placeholder="Start writing — or use the toolbar for checklists, tables, quotes, code and images…"></div>
+        <div id="link-previews" class="link-previews"></div>
+        <div class="attachments-panel">
+          <div class="panel-heading"><span>📎 Attachments</span><label class="btn-ghost tiny file-btn">Add file<input type="file" id="file-input" hidden /></label></div>
+          <ul id="attachments-list" class="attachments-list"></ul>
+        </div>
+      </div>
+
+      <aside class="ai-rail">
+        <div class="ai-rail-heading">✨ AI Assistant</div>
+        <div class="ai-actions">
+          <button class="ai-btn" data-ai="summarize">Summarize</button>
+          <button class="ai-btn" data-ai="rewrite">Rewrite &amp; improve</button>
+          <button class="ai-btn" data-ai="key-points">Extract key points</button>
+          <button class="ai-btn" data-ai="checklist">Generate checklist</button>
+          <button class="ai-btn" data-ai="suggest-meta">Suggest title / tags</button>
+        </div>
+        <div class="ai-ask-row">
+          <input id="ai-ask-input" placeholder="Ask a question about this note…" />
+          <button class="icon-btn" id="ai-ask-btn">➤</button>
+        </div>
+        <div class="convert-row">
+          <span class="mini-label">Convert note to</span>
+          <div class="convert-chips">
+            <button data-format="table">Table</button>
+            <button data-format="timeline">Timeline</button>
+            <button data-format="flashcards">Flashcards</button>
+            <button data-format="outline">Outline</button>
+          </div>
+        </div>
+        <div id="ai-output" class="ai-output"></div>
+      </aside>
+    </div>
+  </div>
+</div>
+
+<!-- ============ Version history overlay ============ -->
+<div class="overlay" id="history-overlay" hidden>
+  <div class="overlay-panel small-panel">
+    <header class="overlay-header"><span>🕓 Version history</span><button class="icon-btn" id="close-history-btn">✕</button></header>
+    <ul id="history-list" class="history-list"></ul>
+  </div>
+</div>
+
+<!-- ============ Export overlay ============ -->
+<div class="overlay" id="export-overlay" hidden>
+  <div class="overlay-panel small-panel">
+    <header class="overlay-header"><span>📤 Export &amp; share</span><button class="icon-btn" id="close-export-btn">✕</button></header>
+    <div class="export-options">
+      <button class="export-opt" data-export="pdf">📄 Export as PDF</button>
+      <button class="export-opt" data-export="docx">📝 Export as Word (.doc)</button>
+      <button class="export-opt" data-export="txt">🔤 Export as plain text</button>
+      <button class="export-opt" data-export="md">Ⓜ️ Export as Markdown</button>
+      <button class="export-opt" data-export="print">🖨️ Print</button>
+      <button class="export-opt" data-export="share">🔗 Copy shareable link</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ Quick capture overlay ============ -->
+<div class="overlay" id="quick-overlay" hidden>
+  <div class="overlay-panel small-panel">
+    <header class="overlay-header"><span>⚡ Quick capture</span><button class="icon-btn" id="close-quick-btn">✕</button></header>
+    <textarea id="quick-text" placeholder="Type or paste a thought, a link, anything…" rows="4"></textarea>
+    <div class="quick-actions">
+      <button class="icon-btn" id="quick-voice-btn" title="Voice to text">🎙️</button>
+      <label class="icon-btn file-btn" title="Attach a file">📎<input type="file" id="quick-file-input" hidden /></label>
+      <span id="quick-file-name" class="quick-file-name"></span>
+      <button class="btn-primary" id="quick-save-btn">Save note</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ Ask My Notes overlay ============ -->
+<div class="overlay" id="ask-overlay" hidden>
+  <div class="overlay-panel small-panel ask-panel">
+    <header class="overlay-header"><span>🧠 Ask my notes</span><button class="icon-btn" id="close-ask-btn">✕</button></header>
+    <div id="ask-thread" class="ask-thread">
+      <p class="ask-hint">Ask anything about what you've saved — “What did I write about the trip to Goa?”, “Summarize my work notes this week”…</p>
+    </div>
+    <div class="ask-input-row">
+      <input id="ask-input" placeholder="Ask a question…" />
+      <button class="icon-btn" id="ask-send-btn">➤</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ New folder overlay ============ -->
+<div class="overlay" id="folder-overlay" hidden>
+  <div class="overlay-panel small-panel">
+    <header class="overlay-header"><span>🗂️ New folder</span><button class="icon-btn" id="close-folder-btn">✕</button></header>
+    <input id="folder-name-input" placeholder="Folder name" />
+    <select id="folder-parent-select"><option value="">Top level</option></select>
+    <button class="btn-primary btn-block" id="save-folder-btn">Create folder</button>
+  </div>
+</div>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="script.js"></script>
+</body>
+</html>

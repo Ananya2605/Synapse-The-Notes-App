@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Shared note — Synapse</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  body { margin:0; background:#0c1016; color:#e9edf5; font-family:'Inter',sans-serif; display:flex; justify-content:center; padding:60px 20px; }
+  .card { max-width: 680px; width:100%; }
+  h1 { font-family:'Sora',sans-serif; font-size: 26px; }
+  .meta { color:#8891a7; font-size: 12.5px; margin-bottom: 24px; }
+  .content { font-size: 15px; line-height: 1.75; }
+  .content pre { background:#171c26; padding:12px; border-radius:8px; overflow-x:auto; }
+  .content blockquote { border-left:3px solid #3d7bfd; margin:0; padding:4px 16px; color:#8891a7; }
+  .content img { max-width:100%; border-radius:8px; }
+  .brand { color:#3d7bfd; font-weight:700; margin-bottom: 30px; }
+  .missing { color:#8891a7; text-align:center; margin-top: 100px; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="brand">◈ Synapse</div>
+    <div id="note"></div>
+  </div>
+<script>
+  const params = new URLSearchParams(location.search);
+  const id = params.get('id');
+  const noteEl = document.getElementById('note');
+  if (!id) {
+    noteEl.innerHTML = '<p class="missing">No note specified.</p>';
+  } else {
+    fetch('/api/notes/' + id + '/share')
+      .then(r => { if (!r.ok) throw new Error('not found'); return r.json(); })
+      .then(data => {
+        noteEl.innerHTML =
+          '<h1>' + escapeHtml(data.title || 'Untitled note') + '</h1>' +
+          '<div class="meta">Last updated ' + new Date(data.updatedAt).toLocaleString() + '</div>' +
+          '<div class="content">' + (data.contentHtml || '<p>This note is empty.</p>') + '</div>';
+      })
+      .catch(() => {
+        noteEl.innerHTML = '<p class="missing">This note is private or no longer available.</p>';
+      });
+  }
+  function escapeHtml(s) {
+    return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+</script>
+</body>
+</html>
